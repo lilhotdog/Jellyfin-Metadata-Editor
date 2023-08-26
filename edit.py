@@ -203,6 +203,7 @@ class EditScreen(ttk.Frame):
 
     def on_save_config(self):
         self.config.write_cells()
+        self.save_config.configure(text='Saved')
 
     def on_next(self):
         if self.current_cell_index == len(self.cells) - 1:
