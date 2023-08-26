@@ -108,7 +108,8 @@ class Database:
             for index, cell in enumerate(cells):
 
                 target_name = cell["Name"]  #
-                target_size = cell["Size"]  # Used for matching to the database.
+                # Used for matching to the database.
+                target_size = cell["Size"]
                 field_list = []
                 field_values = []
                 set_string = None
@@ -201,6 +202,9 @@ class Config:
             OptionsSchema(key="PremiereDate", edit=False,
                           display=True, data_type='DATETIME')
         ]
+        self.found_values = {
+
+        }
         # if a local config is found verify it
         if os.stat("config.json").st_size > 2:
             self.verify()
@@ -242,22 +246,34 @@ class Config:
 
                 }
                 for index, option in enumerate(self.options):
+
+                    # Find and store separated values.
+                    if option.key in self.separated_entries and option.edit and cell[index]:
+                        if option.key not in self.found_values:
+                            self.found_values[option.key] = []
+                        temp_list = []
+                        if '|' in cell[index]:
+                            temp_list = cell[index].split('|')
+                        else:
+                            temp_list = [cell[index]]
+                        for item in temp_list:
+                            if item not in self.found_values[option.key]:
+                                self.found_values[option.key].append(item)
+
                     temp_cell[f"{option.key}"] = cell[index] if cell[index] else ''
                     if option.edit:
                         temp_cell[f"Updated_{option.key}"] = ''
                 temp_cell["Size"] = cell[-1]
                 temp_cells.append(temp_cell)
-            with open(self.config_location, 'r+') as file:
-                json_conf = json.load(file)
-                file.truncate(0)
-                file.seek(0)
-                if 'cells' in json_conf[self.current_series]:
-                    json_conf[self.current_series]["cells"] = temp_cells
-                    json.dump(json_conf, file, indent=4)
-                else:
-                    json_conf[self.current_series].update(
-                        {"cells": temp_cells})
-                    json.dump(json_conf, file, indent=4)
+
+            # Add the found values into the config
+            for key, value in self.found_values.items():
+                if key not in self.config_data[self.current_series]:
+                    self.config_data[self.current_series][key] = value
+            
+            with open(self.config_location, 'w') as file:
+                self.config_data[self.current_series]["cells"] = temp_cells
+                json.dump(self.config_data, file, indent=4)
         except Exception as e:
             print(e)
 
@@ -318,15 +334,15 @@ class Config:
                     if str(e).startswith('Invalid key'):
                         temp_data[series]["errors"].append(
                             {option[
-                                 "key"]: f'This key does not exist in your current database or is not currently support. Edits to this field ({option["key"]}) will be ignored'})
+                                "key"]: f'This key does not exist in your current database or is not currently support. Edits to this field ({option["key"]}) will be ignored'})
                     elif option["key"].startswith('Invalid Data'):
                         temp_data[series]["errors"].append(
                             {option[
-                                 "key"]: f'This option tries to update an unsupported data type. Edits to this field ({option["key"]}) will be ignored'})
+                                "key"]: f'This option tries to update an unsupported data type. Edits to this field ({option["key"]}) will be ignored'})
                     else:
                         temp_data[series]["errors"].append(
                             {option[
-                                 "key"]: f'An unknown error occurred with the option targeting ({option["key"]}) edits to this field will be ignored'})
+                                "key"]: f'An unknown error occurred with the option targeting ({option["key"]}) edits to this field will be ignored'})
                     continue
 
             if not self.import_data:
@@ -476,6 +492,7 @@ class Config:
                 target_series = self.current_series or list(
                     self.config_data.keys())[0]
             if target_field not in self.config_data[target_series]:
+                print("hi")
                 self.config_data[target_series][target_field] = []
             if new_field:
                 self.config_data[target_series][target_field].append(new_field)
@@ -528,8 +545,8 @@ class Settings:
         self.separated_options = [option['key'] for option in self.options if option['edit']
                                   and option['key'] in self.config.separated_entries] or None
         self.display_only = [
-                                option['key'] for option in self.options if
-                                option['display'] and not option['edit']] or None
+            option['key'] for option in self.options if
+            option['display'] and not option['edit']] or None
         self.edit_and_display = [option['key'] for option in self.options if option['edit']
                                  and option['display'] and not option['key'] in self.config.separated_entries] or None
         self.edit_only = [option['key'] for option in self.options if option['edit']
@@ -543,8 +560,8 @@ class Settings:
         self.separated_options = [option['key'] for option in self.options if option['edit']
                                   and option['key'] in self.config.separated_entries] or None
         self.display_only = [
-                                option['key'] for option in self.options if
-                                option['display'] and not option['edit']] or None
+            option['key'] for option in self.options if
+            option['display'] and not option['edit']] or None
         self.edit_and_display = [option['key'] for option in self.options if option['edit']
                                  and option['display'] and not option['key'] in self.config.separated_entries] or None
         self.edit_only = [option['key'] for option in self.options if option['edit']

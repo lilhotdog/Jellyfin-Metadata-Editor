@@ -15,7 +15,6 @@ class SidebarWindow:
         self.sidebar.title("Sidebar Window")
         self.scrollable_sidebar = ScrollableSidebar(
             self.sidebar, self.config, self.edit_screen, settings)
-        print(self.scrollable_sidebar.get_treeview_row_count())
         self.scrollable_sidebar.set_tree_position()
 
     def on_close(self):
@@ -135,7 +134,7 @@ class EditScreen(ttk.Frame):
     def create_widgets(self):
         self.methods.destroy_widgets(self)
         ttk.Label(
-            self, text=self.current_cell["Name"], font="Helvetica 16 bold").grid(row=0)
+            self, text=self.config.current_series, font="Helvetica 16 bold").grid(row=0)
         row = 0
         if self.settings.display_only:
             for d in self.settings.display_only:
@@ -368,7 +367,6 @@ class SeparatedFrame(ttk.Frame):
     def toggle_option(self, toggle_option):
         self.update_list()
         if toggle_option in self.list_options:
-            print(toggle_option)
             self.list_options.remove(toggle_option)
         else:
             self.list_options.append(toggle_option)
@@ -377,6 +375,7 @@ class SeparatedFrame(ttk.Frame):
         self.post_options()
         self.update_style()
     
+    # If a field is in the episodes Name
     def on_auto_toggle(self):
         self.update_list()
         if self.parent.auto_add[self.field].get():
